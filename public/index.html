@@ -349,10 +349,10 @@ const stock = response.stock || response;
       fmt(pick(stock,["volume","tradeVolume"]));
 
     document.getElementById("ma5").textContent =
-      fmt(pick(stock,["ma5","MA5"]));
+      fmt(pick(stock,["sma5","ma5","MA5"]));
 
     document.getElementById("ma20").textContent =
-      fmt(pick(stock,["ma20","MA20"]));
+      fmt(pick(stock,["sma20","ma20","MA20"]));
 
     const high7=pick(stock,["high7","sevenDayHigh"]);
     const low7=pick(stock,["low7","sevenDayLow"]);
