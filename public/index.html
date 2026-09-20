@@ -366,8 +366,7 @@ const stock = response.stock || response;
     document.getElementById("range30").textContent =
       fmt(high30)+" / "+fmt(low30);
 
-    const daily =
-      pick(stock,["dailyMacd","macdDaily","dailyMACD"],{});
+    const daily = stock.macd || {};
 
     const weekly =
       pick(stock,["weeklyMacd","macdWeekly","weeklyMACD"],{});
