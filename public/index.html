@@ -214,10 +214,24 @@ async function getJSON(url){
 function macdChart(canvasId, macd, oldChart){
   if(oldChart) oldChart.destroy();
 
-  const labels = pick(macd,["labels","dates"],[]);
-  const dif = pick(macd,["dif","DIF","macd"],[]);
-  const dea = pick(macd,["dea","DEA","signal"],[]);
-  const osc = pick(macd,["osc","OSC","histogram"],[]);
+  const series = macd?.series || {};
+
+const dif = pick(series, ["dif","DIF","macd"], []);
+const dea = pick(series, ["dea","DEA","signal"], []);
+const osc = pick(series, ["osc","OSC","histogram"], []);
+
+let labels = pick(series, ["labels","dates"], []);
+
+// 如果 API 沒有日期陣列，就自動產生序號，避免 Chart.js 畫不出來
+if (!Array.isArray(labels) || labels.length === 0) {
+  const len = Math.max(
+    Array.isArray(dif) ? dif.length : 0,
+    Array.isArray(dea) ? dea.length : 0,
+    Array.isArray(osc) ? osc.length : 0
+  );
+
+  labels = Array.from({length: len}, (_, i) => i + 1);
+}
 
   return new Chart(
     document.getElementById(canvasId),
