@@ -326,8 +326,10 @@ async function searchStock(){
 
   try{
 
-    const stock =
-      await getJSON("/api/stock/" + encodeURIComponent(code));
+    const response =
+    await getJSON("/api/stock/" + encodeURIComponent(code));
+
+const stock = response.stock || response;
 
     document.getElementById("result").style.display="block";
 
