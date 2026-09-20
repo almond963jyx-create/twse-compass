@@ -219,7 +219,11 @@ function macdChart(canvasId, macd, oldChart){
 const dif = pick(series, ["dif","DIF","macd"], []);
 const dea = pick(series, ["dea","DEA","signal"], []);
 const osc = pick(series, ["osc","OSC","histogram"], []);
-
+const oscColors = Array.isArray(osc)
+  ? osc.map(v => Number(v) >= 0
+      ? "rgba(239,68,68,0.55)"
+      : "rgba(34,197,94,0.55)")
+  : [];
 let labels = pick(series, ["labels","dates"], []);
 
 // 如果 API 沒有日期陣列，就自動產生序號，避免 Chart.js 畫不出來
@@ -254,9 +258,12 @@ if (!Array.isArray(labels) || labels.length === 0) {
             pointRadius:0
           },
           {
-            type:"bar",
-            label:"OSC",
-            data:osc
+  type:"bar",
+  label:"OSC",
+  data:osc,
+  backgroundColor: oscColors,
+  borderColor: oscColors,
+  borderWidth: 0
           }
         ]
       },
