@@ -181,6 +181,44 @@ app.get('/api/institutional-ranking', async (_req,res)=>{
     res.json({dataDate:date,buy,sell});
   }catch(e){res.status(503).json({error:'法人排行資料暫時無法取得'});}
 });
-
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="zh-Hant">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>台股羅盤</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          background: #f5f8fc;
+          margin: 0;
+          padding: 20px;
+          color: #172b4d;
+        }
+        .card {
+          max-width: 700px;
+          margin: 40px auto;
+          background: white;
+          padding: 28px 20px;
+          border-radius: 16px;
+          box-shadow: 0 4px 20px rgba(0,0,0,.08);
+        }
+        h1 { margin-top: 0; }
+        .ok { color: #087f5b; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h1>台股羅盤</h1>
+        <p class="ok">✓ 系統已成功啟動</p>
+        <p>TWSE 台股資料服務已連線至後端。</p>
+        <p>V1.2.1</p>
+      </div>
+    </body>
+    </html>
+  `);
+});
 if (require.main === module) app.listen(PORT,()=>console.log(`台股羅盤 running on http://localhost:${PORT}`));
 module.exports = app;
