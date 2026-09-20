@@ -1,0 +1,17 @@
+{
+  "name": "twse-compass",
+  "version": "1.2.0",
+  "private": true,
+  "description": "台股羅盤 V1.2 - one-click deploy mobile-first TWSE dashboard",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "cors": "^2.8.5"
+  }
+}
