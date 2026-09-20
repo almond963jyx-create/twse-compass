@@ -216,18 +216,21 @@ function macdChart(canvasId, macd, oldChart){
 
   const series = macd?.series || {};
 
-const dif = pick(series, ["dif","DIF","macd"], []);
-const dea = pick(series, ["dea","DEA","signal"], []);
-const osc = pick(series, ["osc","OSC","histogram"], []);
-const oscColors = Array.isArray(osc)
-  ? osc.map(v => Number(v) >= 0
-      ? "rgba(239,68,68,0.55)"
-      : "rgba(34,197,94,0.55)")
-  : [];
+let dif = pick(series, ["dif","DIF","macd"], []);
+let dea = pick(series, ["dea","DEA","signal"], []);
+let osc = pick(series, ["osc","OSC","histogram"], []);
 let labels = pick(series, ["labels","dates"], []);
 
-// 如果 API 沒有日期陣列，就自動產生序號，避免 Chart.js 畫不出來
-if (!Array.isArray(labels) || labels.length === 0) {
+// 日 MACD 顯示最近 60 筆，週 MACD 顯示最近 30 筆
+const limit = canvasId === "weeklyChart" ? 30 : 60;
+
+if (Array.isArray(dif)) dif = dif.slice(-limit);
+if (Array.isArray(dea)) dea = dea.slice(-limit);
+if (Array.isArray(osc)) osc = osc.slice(-limit);
+
+if (Array.isArray(labels) && labels.length > 0) {
+  labels = labels.slice(-limit);
+} else {
   const len = Math.max(
     Array.isArray(dif) ? dif.length : 0,
     Array.isArray(dea) ? dea.length : 0,
@@ -236,6 +239,13 @@ if (!Array.isArray(labels) || labels.length === 0) {
 
   labels = Array.from({length: len}, (_, i) => i + 1);
 }
+
+// OSC：正值紅色、負值綠色
+const oscColors = Array.isArray(osc)
+  ? osc.map(v => Number(v) >= 0
+      ? "rgba(239,68,68,0.75)"
+      : "rgba(34,197,94,0.75)")
+  : [];
 
   return new Chart(
     document.getElementById(canvasId),
