@@ -251,27 +251,28 @@ function macdChart(canvasId, macd, oldChart){
         labels:labels,
         datasets:[
           {
-            type:"line",
-            label:"DIF",
-            data:dif,
-            borderColor:"#2196F3",
-            backgroundColor:"rgba(33,150,243,0.12)",
-            borderWidth:2.5,
-            pointRadius:0,
-            pointHoverRadius:4,
-            tension:0.25
-          },
           {
-            type:"line",
-            label:"MACD",
-            data:dea,
-            borderColor:"#FF6384",
-            backgroundColor:"rgba(255,99,132,0.12)",
-            borderWidth:2.5,
-            pointRadius:0,
-            pointHoverRadius:4,
-            tension:0.25
-          },
+  type:"line",
+  label:"DIF",
+  data:dif,
+  borderColor:"#2196F3",
+  backgroundColor:"#2196F3",
+  borderWidth:3,
+  pointRadius:0,
+  pointHoverRadius:4,
+  tension:0.25
+},
+{
+  type:"line",
+  label:"MACD",
+  data:dea,
+  borderColor:"#FF6384",
+  backgroundColor:"#FF6384",
+  borderWidth:3,
+  pointRadius:0,
+  pointHoverRadius:4,
+  tension:0.25
+},
           {
             type:"bar",
             label:"OSC",
