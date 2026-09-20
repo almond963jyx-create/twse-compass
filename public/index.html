@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>台股羅盤</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, "Noto Sans TC", sans-serif;
+      background: #f4f7fb;
+      color: #172b4d;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 18px;
+    }
+    h1 { margin-bottom: 6px; }
+    .sub { color: #667085; margin-bottom: 20px; }
+
+    .search {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    input {
+      flex: 1;
+      padding: 14px;
+      border: 1px solid #ccd3df;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    button {
+      padding: 14px 20px;
+      border: 0;
+      border-radius: 10px;
+      background: #1769e0;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .status {
+      padding: 12px;
+      background: white;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2,1fr);
+      gap: 12px;
+    }
+    .card {
+      background: white;
+      padding: 16px;
+      border-radius: 14px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.06);
+    }
+    .label {
+      font-size: 13px;
+      color: #667085;
+    }
+    .value {
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 6px;
+    }
+
+    .section {
+      background: white;
+      padding: 16px;
+      border-radius: 14px;
+      margin-top: 14px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.06);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th,td {
+      padding: 9px 5px;
+      border-bottom: 1px solid #eee;
+      text-align: right;
+    }
+    th:first-child,td:first-child { text-align:left; }
+
+    canvas {
+      max-height: 280px;
+    }
+
+    .up { color:#d92d20; }
+    .down { color:#087f5b; }
+
+    @media(max-width:600px){
+      .grid { grid-template-columns:1fr 1fr; }
+      .search { flex-direction:column; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <h1>📈 台股羅盤</h1>
+  <div class="sub">TWSE 台股資料分析｜V1.3</div>
+
+  <div class="search">
+    <input id="stock" placeholder="輸入股票代號，例如 2330">
+    <button onclick="searchStock()">搜尋</button>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div id="result" style="display:none">
+
+    <div class="section">
+      <h2 id="stockTitle">股票資訊</h2>
+      <div id="dataDate" class="label"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">前一日收盤</div>
+        <div id="prevClose" class="value">--</div>
+      </div>
+
+      <div class="card">
+        <div class="label">當日收盤</div>
+        <div id="close" class="value">--</div>
+      </div>
+
+      <div class="card">
+        <div class="label">成交量</div>
+        <div id="volume" class="value">--</div>
+      </div>
+
+      <div class="card">
+        <div class="label">5 日均價</div>
+        <div id="ma5" class="value">--</div>
+      </div>
+
+      <div class="card">
+        <div class="label">20 日均價</div>
+        <div id="ma20" class="value">--</div>
+      </div>
+
+      <div class="card">
+        <div class="label">近 7 日高 / 低</div>
+        <div id="range7" class="value">--</div>
+      </div>
+
+      <div class="card">
+        <div class="label">近 30 日高 / 低</div>
+        <div id="range30" class="value">--</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>📊 日 MACD</h3>
+      <canvas id="dailyChart"></canvas>
+    </div>
+
+    <div class="section">
+      <h3>📊 週 MACD</h3>
+      <canvas id="weeklyChart"></canvas>
+    </div>
+
+    <div class="section">
+      <h3>近 3 個交易日三大法人</h3>
+      <div id="institutional">讀取中...</div>
+    </div>
+
+    <div class="section">
+      <h3>上市三大法人買超 / 賣超前 5 名</h3>
+      <div id="ranking">讀取中...</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let dailyChart;
+let weeklyChart;
+
+function fmt(v){
+  if(v === null || v === undefined || v === "") return "--";
+  if(typeof v === "number")
+    return v.toLocaleString("zh-TW",{maximumFractionDigits:2});
+  return v;
+}
+
+function pick(o, keys, fallback="--"){
+  for(const k of keys){
+    if(o && o[k] !== undefined && o[k] !== null)
+      return o[k];
+  }
+  return fallback;
+}
+
+async function getJSON(url){
+  const r = await fetch(url);
+  const data = await r.json();
+  if(!r.ok) throw new Error(data.error || "資料讀取失敗");
+  return data;
+}
+
+function macdChart(canvasId, macd, oldChart){
+  if(oldChart) oldChart.destroy();
+
+  const labels = pick(macd,["labels","dates"],[]);
+  const dif = pick(macd,["dif","DIF","macd"],[]);
+  const dea = pick(macd,["dea","DEA","signal"],[]);
+  const osc = pick(macd,["osc","OSC","histogram"],[]);
+
+  return new Chart(
+    document.getElementById(canvasId),
+    {
+      data:{
+        labels,
+        datasets:[
+          {
+            type:"line",
+            label:"DIF",
+            data:dif,
+            borderWidth:2,
+            pointRadius:0
+          },
+          {
+            type:"line",
+            label:"MACD",
+            data:dea,
+            borderWidth:2,
+            pointRadius:0
+          },
+          {
+            type:"bar",
+            label:"OSC",
+            data:osc
+          }
+        ]
+      },
+      options:{
+        responsive:true,
+        interaction:{
+          mode:"index",
+          intersect:false
+        },
+        plugins:{
+          legend:{position:"bottom"}
+        }
+      }
+    }
+  );
+}
+
+function institutionalTable(rows){
+  if(!rows || !rows.length) return "暫無資料";
+
+  let html =
+  `<table>
+    <tr>
+      <th>日期</th>
+      <th>外資</th>
+      <th>投信</th>
+      <th>自營商</th>
+      <th>合計</th>
+    </tr>`;
+
+  rows.forEach(r=>{
+    html +=
+    `<tr>
+      <td>${pick(r,["date","日期"])}</td>
+      <td>${fmt(pick(r,["foreign","外資"],0))}</td>
+      <td>${fmt(pick(r,["trust","investmentTrust","投信"],0))}</td>
+      <td>${fmt(pick(r,["dealer","自營商"],0))}</td>
+      <td>${fmt(pick(r,["total","三大法人"],0))}</td>
+    </tr>`;
+  });
+
+  return html + "</table>";
+}
+
+function rankingTable(rows){
+  if(!rows || !rows.length) return "暫無資料";
+
+  let html =
+  `<table>
+    <tr>
+      <th>股票</th>
+      <th>三大法人買賣超</th>
+    </tr>`;
+
+  rows.forEach(r=>{
+    html +=
+    `<tr>
+      <td>${pick(r,["code","證券代號"])} ${pick(r,["name","證券名稱"],"")}</td>
+      <td>${fmt(pick(r,["total","買賣超"],0))}</td>
+    </tr>`;
+  });
+
+  return html + "</table>";
+}
+
+async function searchStock(){
+
+  const code =
+    document.getElementById("stock").value.trim();
+
+  const status =
+    document.getElementById("status");
+
+  if(!code){
+    alert("請輸入股票代號");
+    return;
+  }
+
+  status.style.display="block";
+  status.innerHTML="⏳ 正在讀取 TWSE 資料…";
+
+  try{
+
+    const stock =
+      await getJSON("/api/stock/" + encodeURIComponent(code));
+
+    document.getElementById("result").style.display="block";
+
+    document.getElementById("stockTitle").textContent =
+      code + " " + pick(stock,["name","stockName"],"");
+
+    document.getElementById("dataDate").textContent =
+      "資料日期：" + pick(stock,["dataDate","date"],"--");
+
+    document.getElementById("prevClose").textContent =
+      fmt(pick(stock,["prevClose","previousClose"]));
+
+    document.getElementById("close").textContent =
+      fmt(pick(stock,["close","currentClose"]));
+
+    document.getElementById("volume").textContent =
+      fmt(pick(stock,["volume","tradeVolume"]));
+
+    document.getElementById("ma5").textContent =
+      fmt(pick(stock,["ma5","MA5"]));
+
+    document.getElementById("ma20").textContent =
+      fmt(pick(stock,["ma20","MA20"]));
+
+    const high7=pick(stock,["high7","sevenDayHigh"]);
+    const low7=pick(stock,["low7","sevenDayLow"]);
+
+    document.getElementById("range7").textContent =
+      fmt(high7)+" / "+fmt(low7);
+
+    const high30=pick(stock,["high30","thirtyDayHigh"]);
+    const low30=pick(stock,["low30","thirtyDayLow"]);
+
+    document.getElementById("range30").textContent =
+      fmt(high30)+" / "+fmt(low30);
+
+    const daily =
+      pick(stock,["dailyMacd","macdDaily","dailyMACD"],{});
+
+    const weekly =
+      pick(stock,["weeklyMacd","macdWeekly","weeklyMACD"],{});
+
+    dailyChart =
+      macdChart("dailyChart",daily,dailyChart);
+
+    weeklyChart =
+      macdChart("weeklyChart",weekly,weeklyChart);
+
+    try{
+      const inst =
+        await getJSON("/api/institutional/" + encodeURIComponent(code));
+
+      const rows =
+        Array.isArray(inst)
+        ? inst
+        : pick(inst,["results","data"],[]);
+
+      document.getElementById("institutional").innerHTML =
+        institutionalTable(rows);
+
+    }catch(e){
+      document.getElementById("institutional").textContent =
+        "法人資料暫時無法取得";
+    }
+
+    try{
+      const rank =
+        await getJSON("/api/institutional-ranking");
+
+      const buy =
+        pick(rank,["buy","buyTop5"],[]);
+
+      const sell =
+        pick(rank,["sell","sellTop5"],[]);
+
+      document.getElementById("ranking").innerHTML =
+        "<h4>買超前 5 名</h4>" +
+        rankingTable(buy) +
+        "<h4>賣超前 5 名</h4>" +
+        rankingTable(sell);
+
+    }catch(e){
+      document.getElementById("ranking").textContent =
+        "法人排行暫時無法取得";
+    }
+
+    status.innerHTML =
+      "✅ TWSE 資料讀取完成";
+
+  }catch(e){
+
+    status.innerHTML =
+      "❌ " + e.message;
+
+  }
+}
+
+document
+.getElementById("stock")
+.addEventListener("keydown",e=>{
+  if(e.key==="Enter") searchStock();
+});
+</script>
+
+</body>
+</html>
