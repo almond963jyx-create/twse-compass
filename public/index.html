@@ -429,7 +429,7 @@ const stock = response.stock || response;
       fmt(high30)+" / "+fmt(low30);
 
     const daily = stock.macd || {};
-alert(JSON.stringify(daily.series).slice(0,3000));
+
     const weekly =
       pick(stock,["weeklyMacd","macdWeekly","weeklyMACD"],{});
 
@@ -440,22 +440,19 @@ alert(JSON.stringify(daily.series).slice(0,3000));
       macdChart("weeklyChart",weekly,weeklyChart);
 
     try{
-      const inst =
-        await getJSON("/api/institutional/" + encodeURIComponent(code));
+    const rows = pick(
+        response,
+        ["recentInstitutional","institutional"],
+        []
+    );
 
-      const rows =
-        Array.isArray(inst)
-        ? inst
-        : pick(inst,["results","data"],[]);
-
-      document.getElementById("institutional").innerHTML =
-        institutionalTable(rows);
-
-    }catch(e){
-      document.getElementById("institutional").textContent =
+    document.getElementById("institutional").innerHTML =
+        institutionalTable(Array.isArray(rows) ? rows : []);
+}catch(e){
+    document.getElementById("institutional").textContent =
         "法人資料暫時無法取得";
     }
-
+    
     try{
       const rank =
         await getJSON("/api/institutional-ranking");
